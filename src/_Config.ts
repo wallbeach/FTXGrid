@@ -5,9 +5,9 @@ export class Config {
     subAccountName = "";
     market = 'ETH/BTC';
     
-    _stepDistance = 0.0005;
-    _usedEquity = 0.01;
-    _minEquity = 0.003;    //max. 3 decimals
-    _takeProfit = 0.001;
+    stepDistance = 0.0005;
+    usedEquity = 0.01;
+    minEquity = 0.003;    //max. 3 decimals
+    takeProfit = 0.001;
 
 }

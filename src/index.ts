@@ -10,10 +10,10 @@ const secret          = config.secret;
 const subAccountName  = config.subAccountName;
 const market          = config.market;
 
-const _stepDistance   = config._stepDistance;
-const _usedEquity     = config._usedEquity;
-const _minEquity      = config._minEquity;
-const _takeProfit     = config._takeProfit;
+const _stepDistance   = config.stepDistance;
+const _usedEquity     = config.usedEquity;
+const _minEquity      = config.minEquity;
+const _takeProfit     = config.takeProfit;
 
 const restClientOptions = { subAccountName: subAccountName };
 
