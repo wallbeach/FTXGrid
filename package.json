@@ -18,10 +18,16 @@
     "url": "https://github.com/wallbeach/FTXGrid/issues"
   },
   "homepage": "https://github.com/wallbeach/FTXGrid#readme",
-  "dependencies": {
+  "devDependencies": {
     "@types/node": "^16.11.7",
-    "ftx-api": "^1.0.19",
-    "sqlite3": "^5.0.2",
+    "@types/sqlite3": "^3.1.7",
+    "nodemon": "^2.0.15",
+    "ts-node": "^10.4.0",
     "typescript": "^4.4.4"
+  },
+  "dependencies": {
+    "ftx-api": "^1.0.19",
+    "node": "^17.0.1",
+    "sqlite3": "^5.0.2"
   }
 }
