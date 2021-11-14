@@ -28,6 +28,7 @@
   "dependencies": {
     "ftx-api": "^1.0.19",
     "node": "^17.0.1",
+    "typescript": "^4.2.2",
     "sqlite3": "^5.0.2"
   }
 }
