@@ -1,0 +1,27 @@
+{
+  "name": "FTXGrid",
+  "version": "1.0.0",
+  "description": "Grid trading bot for FTX",
+  "main": "index.js",
+  "scripts": {
+    "start": "tsc && node out/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wallbeach/FTXGrid.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/wallbeach/FTXGrid/issues"
+  },
+  "homepage": "https://github.com/wallbeach/FTXGrid#readme",
+  "dependencies": {
+    "@types/node": "^16.11.7",
+    "ftx-api": "^1.0.19",
+    "sqlite3": "^5.0.2",
+    "typescript": "^4.4.4"
+  }
+}
