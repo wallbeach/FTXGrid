@@ -12,12 +12,24 @@ class Database {
         this._tables.push(`
             CREATE TABLE IF NOT EXISTS "Position" (
                 "market"   TEXT    NOT NULL,
-                "price"             REAL    NOT NULL,
-                "size"          REAL    NOT NULL,
+                "price"    REAL    NOT NULL,
+                "size"     REAL    NOT NULL,
 
                 PRIMARY KEY ("market", "price")
             );
         `);
+
+        this._tables.push(`
+            CREATE TABLE IF NOT EXISTS "Portfolio" (
+                "market"        TEXT    NOT NULL,		
+                "timestamp"     TEXT    NOT NULL,		
+                "btc"   		REAL    NULL,		
+                "eth"           REAL    NULL,		
+                "curr_bid"      REAL    NOT NULL,		
+                "total_btc"     REAL    NOT NULL,		
+                PRIMARY KEY ("timestamp")
+            );
+            `);
 
     }
 

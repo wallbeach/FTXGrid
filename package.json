@@ -4,8 +4,9 @@
   "description": "Grid trading bot for FTX",
   "main": "index.js",
   "scripts": {
-    "start": "tsc && node out/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "ts-node index.ts",
+    "build": "tsc"
   },
   "repository": {
     "type": "git",
@@ -19,7 +20,7 @@
   },
   "homepage": "https://github.com/wallbeach/FTXGrid#readme",
   "devDependencies": {
-    "@types/node": "^16.0.0",
+    "@types/node": "^16.11.7",
     "@types/sqlite3": "^3.1.7",
     "nodemon": "^2.0.15",
     "ts-node": "^10.4.0",
@@ -27,8 +28,7 @@
   },
   "dependencies": {
     "ftx-api": "^1.0.19",
-    "node": "^16.0.0",
-    "typescript": "^4.2.2",
+    "node": "^17.0.1",
     "sqlite3": "^5.0.2"
   }
 }

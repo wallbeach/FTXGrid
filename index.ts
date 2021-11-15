@@ -1,7 +1,9 @@
 import { DefaultLogger, RestClient, WebsocketClient } from "ftx-api";
 import { Database } from "./Database.js";
 import { Position } from "./Position.js";
+import { IPortfolio, IPosition } from "./Interface.js";
 import { Config } from "./Config.js";
+import { Portfolio } from "./Portfolio.js";
 
 const config = new Config();
 
@@ -28,6 +30,7 @@ async function start() {
   let currBid;
   let currAsk;
   let currPrice;
+  let totalinbtc;
 
   // 1. Cancel all Orders
   await client.cancelAllOrders({ market: market }).catch(console.error);
@@ -52,14 +55,26 @@ async function start() {
   // 3. Get current market prices
   let _marketBTC = await client.getMarket(market).catch(console.error);
 
+
+
   lastPrice = _marketBTC.result.last;
   currBid = _marketBTC.result.bid;
   currAsk = _marketBTC.result.ask;
   currPrice = _marketBTC.result.price;
 
+  totalinbtc = totalBalanceBTC + totalBalanceETH * currBid;
+
+  const utcDate = new Date(Date.now());
+
+  // Store Portfolio value
+  let portfolio: IPortfolio = {market: market, timestamp: Date.now().toLocaleString(), btc: totalBalanceBTC, eth: totalBalanceETH, curr_bid: currBid, total_btc: totalinbtc};
+
+  await Portfolio.save(portfolio);
+
+  //console.log(`[PORTFOLIO] ${utcDate.toUTCString()} Total Balance BTC: ${totalBalanceBTC}, Total Balance ETH ${totalBalanceETH}, current bid price: ${currBid}, Total Value in BTC: ${totalinbtc}`);
 
   // 4. Calculate buy / sell price
-  let lastPos = await Position.get(market).catch(console.error);
+  let sellPos = await Position.get(market).catch(console.error);
 
 
   let buyPrice = currPrice - currPrice * _stepDistance;
@@ -68,21 +83,37 @@ async function start() {
   let sellPrice = -1;
   let sellAmount = -1;
 
-  if (lastPos) {
-    sellPrice = lastPos.price + lastPos.price * _takeProfit;
-    sellAmount = lastPos.size;
+  if (sellPos) {
+    sellPrice = sellPos.price + sellPos.price * _takeProfit;
+    sellAmount = sellPos.size;
 
     if (sellPrice < currBid) {
       sellPrice = currBid;
     }
   }
+ /**
+  // max drawdown
+  let simBtc = totalBalanceBTC / currPrice;
+  let simCnt = 0;
+  let simPrice = currPrice;
+  while(simBtc > 0) {
+    simBtc = simBtc - buyAmountRnd;
+    simPrice = simPrice - simPrice * _stepDistance;
+    simCnt++;
+  }
+
+  console.log(`Max drawdown: ${simCnt} Positions until Price ${simPrice}`)
+*/
+
 
   if (buyAmountRnd < _minEquity) {
     buyAmountRnd = _minEquity;
   }
 
+  let buyPos: IPosition = {market: market, price: buyPrice, size: buyAmountRnd};
+
   // If there is not enough ETH to sell, buy market first
-  if (freeBalanceETH < buyAmountRnd || lastPos === undefined) {
+  if (freeBalanceETH < buyAmountRnd || sellPos === undefined) {
     try {
       await client.placeOrder({
         market,
@@ -94,47 +125,47 @@ async function start() {
 
       console.log(`[MARKET ORDER] BUY order: ${buyAmountRnd} ETH for ${currAsk}`);
       await Position.set(market, currAsk, buyAmountRnd);
-      return;
     } catch (err) {
       console.warn(`[ALERT] Market order not successful ${err}`)
     }
-  }
+  }else {
 
-  // 5. Place limit buy order
-  try {
-    await client.placeOrder({
-      market,
-      side: 'buy',
-      price: buyPrice,
-      type: 'limit',
-      size: buyAmountRnd
-    });
-  //  console.log(`[LIMIT ORDER] BUY order placed: ${buyAmountRnd} for ${buyPrice}`);
-
-  } catch (err) {
-    console.warn(`[ALERT] Limit buy order not successful ${err}`)
-  }
-
-
-
-  // 6. Place limit sell order
-  if (sellPrice > 0 && sellAmount > 0) {
+    // 5. Place limit buy order
     try {
       await client.placeOrder({
         market,
-        side: 'sell',
-        price: sellPrice,
+        side: 'buy',
+        price: buyPrice,
         type: 'limit',
-        size: sellAmount
+        size: buyAmountRnd
       });
+    //  console.log(`[LIMIT ORDER] BUY order placed: ${buyAmountRnd} for ${buyPrice}`);
 
-  //    console.log(`[LIMIT ORDER] SELL order placed: ${sellAmount} for ${sellPrice}`);
     } catch (err) {
-      console.warn(`[ALERT] Limit sell order not successful ${err}`)
+      console.warn(`[ALERT] Limit buy order not successful ${err}`)
     }
 
+
+
+    // 6. Place limit sell order
+    if (sellPrice > 0 && sellAmount > 0) {
+      try {
+        await client.placeOrder({
+          market,
+          side: 'sell',
+          price: sellPrice,
+          type: 'limit',
+          size: sellAmount
+        });
+
+    //    console.log(`[LIMIT ORDER] SELL order placed: ${sellAmount} for ${sellPrice}`);
+      } catch (err) {
+        console.warn(`[ALERT] Limit sell order not successful ${err}`)
+      }
+
+    }
   }
-}
+}  
 
 async function connect() {
 
@@ -156,7 +187,8 @@ async function connect() {
   ws.on('error', msg => console.log('err: ', msg));
 
   // Subscribe to to topics
-  ws.subscribe('fills');
+  // ws.subscribe(['fills', 'orders']);
+  ws.subscribe(['orders']);
 
 }
 
@@ -164,21 +196,25 @@ async function handleResponse(msg: any) {
 
 
   if (msg.data != undefined) {
-    //   console.log('Message: ', msg);
-    console.log(`[ORDER FILLED] ${msg.data.market}: ${msg.data.side} of ${msg.data.size} ${msg.data.baseCurrency} for ${msg.data.price} ${msg.data.quoteCurrency} filled`)
+    // console.log('Message: ', msg);
+    if (msg.channel === 'orders'){
 
-    if (msg.data.side === 'buy') {
-      await Position.set(msg.data.market, msg.data.price, msg.data.size);
-    } else if (msg.data.side === 'sell') {
-      await Position.deleteLast();
+      if (msg.data.status === 'closed' && msg.data.size === msg.data.filledSize){
+
+        if (msg.data.side === 'buy') {
+          if (msg.data.type === 'limit'){
+            await Position.set(msg.data.market, msg.data.price, msg.data.size);
+            console.log(`[ORDER FILLED] ${msg.data.market}: ${msg.data.side} of ${msg.data.size} ETH for ${msg.data.price} BTC filled`)
+          }
+        } else if (msg.data.side === 'sell') {
+          await Position.deleteLast();
+          console.log(`[ORDER FILLED] ${msg.data.market}: ${msg.data.side} of ${msg.data.size} ETH for ${msg.data.price} BTC filled`)
+        }
+        start();
+      }
     }
-    start();
   }
 
 }
 
 connect();
-
-
-
-
