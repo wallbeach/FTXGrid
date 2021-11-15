@@ -1,6 +1,7 @@
 {
   "name": "FTXGrid",
   "version": "1.0.0",
+  "type": "module",
   "description": "Grid trading bot for FTX",
   "main": "index.js",
   "scripts": {
@@ -30,6 +31,5 @@
     "ftx-api": "^1.0.19",
     "node": "^17.0.1",
     "sqlite3": "^5.0.2"
-  },
-  "type": "module"
+  }
 }
