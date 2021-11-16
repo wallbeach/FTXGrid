@@ -169,9 +169,6 @@ async function start() {
 
 async function connect() {
 
-  await Database.open();
-  await start();
-
   // Turn debugging off
   DefaultLogger.silly = () => { };
   DefaultLogger.debug = () => { };
@@ -189,6 +186,9 @@ async function connect() {
   // Subscribe to to topics
   // ws.subscribe(['fills', 'orders']);
   ws.subscribe(['orders']);
+
+  await Database.open();
+  await start();
 
 }
 
