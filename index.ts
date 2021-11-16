@@ -125,6 +125,7 @@ async function start() {
 
       console.log(`[MARKET ORDER] BUY order: ${buyAmountRnd} ETH for ${currAsk}`);
       await Position.set(market, currAsk, buyAmountRnd);
+      start();
     } catch (err) {
       console.warn(`[ALERT] Market order not successful ${err}`)
     }
@@ -205,12 +206,13 @@ async function handleResponse(msg: any) {
           if (msg.data.type === 'limit'){
             await Position.set(msg.data.market, msg.data.price, msg.data.size);
             console.log(`[ORDER FILLED] ${msg.data.market}: ${msg.data.side} of ${msg.data.size} ETH for ${msg.data.price} BTC filled`)
+            start();
           }
         } else if (msg.data.side === 'sell') {
           await Position.deleteLast();
           console.log(`[ORDER FILLED] ${msg.data.market}: ${msg.data.side} of ${msg.data.size} ETH for ${msg.data.price} BTC filled`)
+          start();
         }
-        start();
       }
     }
   }
