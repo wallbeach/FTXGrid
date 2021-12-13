@@ -91,20 +91,6 @@ async function start() {
       sellPrice = currBid;
     }
   }
- /**
-  // max drawdown
-  let simBtc = totalBalanceBTC / currPrice;
-  let simCnt = 0;
-  let simPrice = currPrice;
-  while(simBtc > 0) {
-    simBtc = simBtc - buyAmountRnd;
-    simPrice = simPrice - simPrice * _stepDistance;
-    simCnt++;
-  }
-
-  console.log(`Max drawdown: ${simCnt} Positions until Price ${simPrice}`)
-*/
-
 
   if (buyAmountRnd < _minEquity) {
     buyAmountRnd = _minEquity;
@@ -112,8 +98,8 @@ async function start() {
 
   let buyPos: IPosition = {market: market, price: buyPrice, size: buyAmountRnd};
 
-  // If there is not enough ETH to sell, buy market first
-  if (freeBalanceETH < buyAmountRnd || sellPos === undefined) {
+  // If there is no sellPosition from the database place a market order
+  if (sellPos === undefined) {
     try {
       await client.placeOrder({
         market,
@@ -121,7 +107,7 @@ async function start() {
         price: null,
         type: 'market',
         size: buyAmountRnd
-      }).catch(console.error);
+      });
 
       console.log(`[MARKET ORDER] BUY order: ${buyAmountRnd} ETH for ${currAsk}`);
       await Position.set(market, currAsk, buyAmountRnd);
