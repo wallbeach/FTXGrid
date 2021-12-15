@@ -8,7 +8,7 @@ cd "$basedir";
 git reset --hard
 
 # Pull the current repository
-git pull origin master
+git pull origin
 
 # Execute the install script
 sh install.sh
