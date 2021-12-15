@@ -4,6 +4,8 @@ import { Position } from "./Position.js";
 import { IPortfolio, IPosition } from "./Interface.js";
 import { Config } from "./Config.js";
 import { Portfolio } from "./Portfolio.js";
+import cron from "node-cron";
+import express from "express";
 
 const config = new Config();
 
@@ -20,8 +22,6 @@ const _takeProfit = config.takeProfit;
 const restClientOptions = { subAccountName: subAccountName };
 
 async function start() {
-  const client = new RestClient(key, secret, restClientOptions);
-
   let totalBalanceBTC;
   let freeBalanceBTC;
   let totalBalanceETH;
@@ -116,36 +116,31 @@ async function start() {
         size: buyAmountRnd,
       });
 
-      if (resp.success) {
-        console.log(
-          `[MARKET ORDER] BUY order: ${buyAmountRnd} ETH for ${currAsk}`
-        );
-        await Position.set(market, currAsk, buyAmountRnd);
-        start();
+      if (resp) {
+        if (resp.success) {
+          console.log(`[MARKET ORDER] BUY order: ${buyAmountRnd} ETH for ${currAsk}`);
+          await Position.set(market, currAsk, buyAmountRnd);
+          start();
+        }
       } else {
-        console.warn(`[ALERT] Market order not successful ${resp.error}`);
+        console.warn(`[ALERT] Market buy order not successful`);
       }
     } catch (err) {
-      console.warn(`[ALERT] Market order not successful ${err}`);
+      console.warn(`[Error] Market buy order not successful ${err.body.error}`);
     }
   } else {
     // 5. Place limit buy order
     try {
-      let resp = await client
-        .placeOrder({
-          market,
-          side: "buy",
-          price: buyPrice,
-          type: "limit",
-          size: buyAmountRnd,
-        })
-        .catch(console.error);
+      let resp = await client.placeOrder({
+        market,
+        side: "buy",
+        price: buyPrice,
+        type: "limit",
+        size: buyAmountRnd,
+      });
 
-      if (!resp.success) {
-        console.warn(`[ALERT] Limit buy order not successful ${resp.error}`);
-      }
     } catch (err) {
-      console.warn(`[ALERT] Limit buy order not successful ${err}`);
+      console.warn(`[Error] Limit buy order not successful ${err.body.error}`);
     }
 
     // 6. Place limit sell order
@@ -159,15 +154,29 @@ async function start() {
           size: sellAmount,
         });
 
-        if (!resp.success) {
-          console.warn(`[ALERT] Limit sell order not successful ${resp.error}`);
-        }
-
-        //    console.log(`[LIMIT ORDER] SELL order placed: ${sellAmount} for ${sellPrice}`);
       } catch (err) {
-        console.warn(`[ALERT] Limit sell order not successful ${err}`);
+        console.warn(`[Error] Limit sell order not successful ${err.body.error}`);
       }
     }
+  }
+}
+
+async function schedule() {
+  await connect();
+  const app = express();
+
+  cron.schedule(`* * * * *`, function () {
+    checkOrders();
+  });
+  app.listen(3001);
+}
+async function checkOrders() {
+  let resp = await client.getOpenOrders(market);
+
+  // check if there is any open order
+  if (resp.result.length === 0) {
+    console.info(`[Info] No open order found, restarting...`);
+    start();
   }
 }
 
@@ -207,16 +216,12 @@ async function handleResponse(msg: any) {
         if (msg.data.side === "buy") {
           if (msg.data.type === "limit") {
             await Position.set(msg.data.market, msg.data.price, msg.data.size);
-            console.log(
-              `[ORDER FILLED] ${msg.data.market}: ${msg.data.side} of ${msg.data.size} ETH for ${msg.data.price} BTC filled`
-            );
+            console.log(`[ORDER FILLED] ${msg.data.market}: ${msg.data.side} of ${msg.data.size} ETH for ${msg.data.price} BTC filled`);
             start();
           }
         } else if (msg.data.side === "sell") {
           await Position.deleteLast();
-          console.log(
-            `[ORDER FILLED] ${msg.data.market}: ${msg.data.side} of ${msg.data.size} ETH for ${msg.data.price} BTC filled`
-          );
+          console.log(`[ORDER FILLED] ${msg.data.market}: ${msg.data.side} of ${msg.data.size} ETH for ${msg.data.price} BTC filled`);
           start();
         }
       }
@@ -224,4 +229,6 @@ async function handleResponse(msg: any) {
   }
 }
 
-connect();
+const client = new RestClient(key, secret, restClientOptions);
+
+schedule();
