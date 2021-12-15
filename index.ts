@@ -5,7 +5,6 @@ import { IPortfolio, IPosition } from "./Interface.js";
 import { Config } from "./Config.js";
 import { Portfolio } from "./Portfolio.js";
 import cron from "node-cron";
-import express from "express";
 
 const config = new Config();
 
@@ -163,12 +162,10 @@ async function start() {
 
 async function schedule() {
   await connect();
-  const app = express();
 
   cron.schedule(`* * * * *`, function () {
     checkOrders();
   });
-  app.listen(3001);
 }
 async function checkOrders() {
   let resp = await client.getOpenOrders(market);
