@@ -160,6 +160,10 @@ async function start() {
   }
 }
 
+function delay(ms: number) {
+  return new Promise( resolve => setTimeout(resolve, ms) );
+}
+
 async function schedule() {
   await connect();
 
@@ -172,8 +176,24 @@ async function checkOrders() {
 
   // check if there is any open order
   if (resp.result.length === 0) {
-    console.info(`[Info] No open order found, restarting...`);
-    start();
+    console.info(`[Info] No open order found, checking again in 10sec...`);
+    await delay(10000);
+    resp = await client.getOpenOrders(market);
+    if (resp.result.length === 0) {
+      console.info(`[Info] No open order found, restarting...`);
+      start();
+    }
+
+  // bot should never have more than two open orders 
+  }else if (resp.result.length > 2){
+    console.info(`[Info] Too many open orders found (${resp.result.length}), checking again in 10sec...`);
+    await delay(10000);
+
+    resp = await client.getOpenOrders(market);
+    if (resp.result.length > 2) {
+      console.info(`[Info] Too many open orders found (${resp.result.length}), restarting...`);
+      start();
+    }  
   }
 }
 
